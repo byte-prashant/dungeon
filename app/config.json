@@ -1,0 +1,27 @@
+{
+    "base_folder": "/Users/pnt/development/OGA game/",
+    "folder_structure": {
+                  "game_name": {
+                    "client_name": {
+                      "game_name": {
+                        "fixtures": [
+                          "games.json"
+                        ],
+                        "tests": [
+                          "performance_test.py",
+                          "test.py",
+                          "volume_tester.py"
+                        ],
+                        "defs.py": "",
+                        "engine.py": "",
+                        "parser.py": "",
+                        "renderer.py": ""
+                      },
+                      "README.md": "",
+                      "CHANGELOG.md": "",
+                      "setup.py": ""
+                    }
+                  }
+}
+
+}
