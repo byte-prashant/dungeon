@@ -16,11 +16,12 @@
                         "engine.py": "",
                         "parser.py": "",
                         "renderer.py": ""
-                      },
-                      "README.md": "",
-                      "CHANGELOG.md": "",
-                      "setup.py": ""
-                    }
+                      }
+                    },
+                    "README.md": "",
+                    "CHANGELOG.md": "",
+                    "setup.py": ""
+
                   }
 }
 

@@ -14,7 +14,7 @@ def add_alias_to_shell():
             # Add the alias to the config file
             with open(config_file_path, 'a') as f:
                 f.write("\n# Added by my_tool package\n")
-                f.write(f"alias astro='python -m my_tool.cli'\n")
+                f.write(f"alias yagmi='python -m app.cli'\n")
             print(f"Alias added to {config_file_path}")
 
             # Reload the shell configuration

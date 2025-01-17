@@ -1,6 +1,6 @@
 # my_tool/cli.py
 import argparse
-from app.buildFolderStructure import create_structure_from_json
+from app.build_folder_structure import create_structure_from_json
 
 def main():
     parser = argparse.ArgumentParser(description="A simple CLI tool.")
