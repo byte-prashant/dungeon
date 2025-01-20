@@ -1,11 +1,11 @@
 # my_tool/cli.py
 import argparse
 from app.build_folder_structure import create_structure_from_json
-
+from app.utils import find_and_replace_version
 def main():
     parser = argparse.ArgumentParser(description="A simple CLI tool.")
     parser.add_argument('command', type=str, choices=['dev'], help="Command to run")
-    parser.add_argument('subcommand', type=str, choices=['init'], help="Subcommand to run under dev")
+    parser.add_argument('subcommand', type=str, choices=['init',"update_version"], help="Subcommand to run under dev")
 
     args = parser.parse_args()
 
@@ -20,6 +20,16 @@ def main():
 
         # Create the folder structure from the JSON#
         create_structure_from_json(client_name,gamename)
+
+    if args.command == 'dev' and args.subcommand == 'update_version':
+        current_version = input("Enter the current version ex-> 0.1.0: ")
+        new_version = input("Enter the current version ex-> 0.2.0: ")
+        current_version = "version:"+current_version
+        new_version = "version:"+new_version
+        game_directory_path = input("enter game directory path ex -> /Users/pnt/development/OGA game/yo utr/")
+        find_and_replace_version(game_directory_path,current_version,new_version)
+
+
     else:
         print("Invalid command or subcommand")
 

@@ -35,9 +35,10 @@ def create_structure(base_path, structure, game_name, client_name):
                     if file.endswith('.json'):
                         f.write('{}')  # Example: empty JSON file
                     elif file.endswith('.py'):
-                        f.write('# Python file created automatically\n')  # Python file placeholder
+                        f.write('"""\n  version:0.1.0 \n"""\n')  # Python file placeholder
+
                     elif file.endswith('.md'):
-                        f.write(f"# {file} created\n")  # Markdown file placeholder
+                        f.write('"""\n  version:0.1.0 \n"""\n') # Markdown file placeholder
                 print(f"Created file: {file_path}")
         elif isinstance(value, dict):
             # It's a folder with subfolders (recursive)
@@ -49,9 +50,9 @@ def create_structure(base_path, structure, game_name, client_name):
             file_path = os.path.join(base_path, key)
             with open(file_path, 'w') as f:
                 if key.endswith('.md'):
-                    f.write(f"# {key} created\n")  # Placeholder for markdown files
+                    f.write('"""\n  version:0.1.0 \n"""\n')  # Placeholder for markdown files
                 elif key.endswith('.py'):
-                    f.write('# Python file created automatically\n')  # Placeholder for Python files
+                    f.write('"""\n  version:0.1.0\n"""\n')  # Placeholder for Python files
                     if "setup.py" ==  key:
                         setup_content = create_setup_file(game_name)
 
