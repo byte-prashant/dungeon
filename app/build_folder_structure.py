@@ -1,9 +1,7 @@
 import argparse
 import os
 from app.file_content.setup import create_setup_file
-
-from app.utils import load_settings,print_folder_structure
-
+from app.utils import load_settings,print_folder_structure,get_oga_directory
 import argparse
 import os
 import json
@@ -17,7 +15,6 @@ def create_python_package(dir_path):
         with open(init_file, 'w') as f:
             f.write("# This is an empty __init__.py file to mark the directory as a Python package.")
     print(f"Created Python package: {dir_path}")
-
 
 def create_structure(base_path, structure, game_name, client_name):
     if not structure:
@@ -65,7 +62,7 @@ def create_structure(base_path, structure, game_name, client_name):
 def create_structure_from_json(client_name, game_name):
     """Recursively create directories and files from the given JSON structure."""
     setting = load_settings()
-    base_path = setting['base_folder']
+    base_path = get_oga_directory()
     base_path = os.path.join(base_path)
     structure = setting['folder_structure']
     new_structure = update_structure(structure, client_name, game_name)

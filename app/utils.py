@@ -1,5 +1,7 @@
 import json
 import os
+import re
+
 def load_settings():
     """Load settings from a configuration file (settings.json)"""
     settings_file = 'app/config.json'
@@ -13,6 +15,19 @@ def load_settings():
 
     return settings
 
+def load_game_commands():
+    """Load settings from a configuration file (settings.json)"""
+    cwd = os.getcwd()
+    settings_file = cwd+'/command_config.json'
+
+    if not os.path.exists(settings_file):
+        print(f"Settings file {settings_file} not found!")
+        return None
+
+    with open(settings_file, 'r') as f:
+        settings = json.load(f)
+
+    return settings
 
 def print_folder_structure(folder_structure, indent=0):
     """
@@ -45,27 +60,15 @@ def find_and_replace_version(directory, old_version, new_version):
     for root, _, files in os.walk(directory):
         for file in files:
             file_path = os.path.join(root, file)
-            try:
-                with open(file_path, 'r') as f:
-                    lines = f.readlines()
 
-                # Only check the first 10 lines
-                top_lines = lines[:10]
-                content_to_check = ''.join(top_lines)
-
-                if old_version in content_to_check:
-                    updated_lines = [line.replace(old_version, new_version) for line in top_lines]
-                    lines[:10] = updated_lines
-                    with open(file_path, 'w') as f:
-                        f.writelines(lines)
-                    print(f"Updated version in: {file_path}")
-            except (UnicodeDecodeError, PermissionError) as e:
-                print(f"Skipped file {file_path}: {e}")
+            if not  file_path.endswith(".py"):
+                continue
+            update_version(file_path,new_version)
 
 
 def get_oga_directory():
     import os
-
+    root = os.path.abspath(os.sep)
     # Get the current working directory
     current_directory = os.getcwd()
 
@@ -79,4 +82,51 @@ def get_oga_directory():
     else:
         final_ans = current_directory  # Fallback to the original directory
 
-    return final_ans
+    return root + final_ans
+
+
+
+
+def update_version(file_path,new_version):
+    try:
+        # Read all lines of the file
+        with open(file_path, 'r') as file:
+            lines = file.readlines()
+        triple_quote = '"""'
+        start, end = None, None
+
+        for index, line in enumerate(lines):
+            if triple_quote in line:
+                if start is None:
+                    start = index
+                elif end is None:
+                    end = index
+                    break
+
+        # Update the version inside the triple quotes
+        if start is not None and end is not None and start != end:
+            docstring_lines = lines[start + 1:end]
+            updated_lines = []
+
+            version_pattern = r"(version\s*:\s*)(\d+\.\d+\.\d+)"
+            new_version = "Version: "+new_version
+            for line in docstring_lines:
+                if re.search(version_pattern, line, re.IGNORECASE):
+                    updated_line = re.sub(version_pattern, new_version, line, flags=re.IGNORECASE)
+                    updated_lines.append(updated_line)
+                else:
+                    updated_lines.append(line)
+
+            lines[start + 1:end] = updated_lines
+
+            # Write the updated content back to the file
+            with open(file_path, 'w') as file:
+                file.writelines(lines)
+            print("Version updated successfully.")
+        else:
+            print("No docstring found at the top of the file.")
+
+    except FileNotFoundError:
+        print(f"Error: The file '{file_path}' was not found.")
+    except Exception as e:
+        print(f"An error occurred: {e}")

@@ -130,11 +130,11 @@ def construct_vt_runner_command(module_name, parameters,process_name):
     return command
 
 
-def run_vt_runner(game_name,process_name):
+def run_vt_runner(process_name,config):
     """Runs the vt-runner for the selected game based on user input."""
     # Retrieve the parameters and module name for the selected game from the config
-    if game_name in config and process_name in config[game_name] :
-        game_config = config[game_name][process_name]
+    if process_name in config[game_name]:
+        game_config = config[process_name]
         parameters = game_config["command_parameters"]
         module_name = game_config["module_name"]
 
@@ -168,20 +168,5 @@ def run_vt_runner(game_name,process_name):
         except FileNotFoundError:
             print("vt-runner not found. Make sure it's installed and accessible.")
     else:
-        print(f"Game '{game_name}' is not in the configuration. or entered process name is not defined")
+        print(f"Game's command_config file is not present. Please add config to  location",os.getcwd())
 
-
-def main():
-    """Main function to prompt the user for game selection and run the vt-runner."""
-    # Prompt the user for the game selection
-    game_name = input("Enter the game name (e.g., 'super88'): ").strip()
-    process_selection= input("Enter the process  name (e.g., 'performance(1), test(2),rtp(3)'): ").strip()
-    # Run the vt-runner for the selected game
-    process_abs = {"1":"performance","2":"test","3":"rtp"}
-    if process_selection in process_abs:
-        run_vt_runner(game_name,process_abs[process_selection])
-    else:
-        print(f"Game '{game_name}' is not in the configuration. or entered process name is not defined")
-
-if __name__ == "__main__":
-    main()

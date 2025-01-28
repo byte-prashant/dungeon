@@ -20,7 +20,9 @@
       },
       "README.md": "",
       "CHANGELOG.md": "",
-      "setup.py": ""
+      "setup.py": "",
+      ".gitingore": "",
+      "command_config.json": ""
     }
   }
 }
