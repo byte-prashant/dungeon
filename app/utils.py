@@ -61,3 +61,22 @@ def find_and_replace_version(directory, old_version, new_version):
                     print(f"Updated version in: {file_path}")
             except (UnicodeDecodeError, PermissionError) as e:
                 print(f"Skipped file {file_path}: {e}")
+
+
+def get_oga_directory():
+    import os
+
+    # Get the current working directory
+    current_directory = os.getcwd()
+
+    # Find the part of the path up to "OGA" (case-insensitive)
+    final_ans = ""
+    if "OGA" in current_directory.upper():
+        for path_name in current_directory.split(os.sep):
+            final_ans = os.path.join(final_ans, path_name)  # Reconstruct the path
+            if "OGA" in path_name.upper():
+                break
+    else:
+        final_ans = current_directory  # Fallback to the original directory
+
+    return final_ans
