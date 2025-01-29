@@ -62,9 +62,11 @@ def create_structure(base_path, structure, game_name, client_name):
 def create_structure_from_json(client_name, game_name):
     """Recursively create directories and files from the given JSON structure."""
     setting = load_settings()
-    base_path = get_oga_directory()
+    #print(setting)
+    base_path = get_oga_directory()+"/engines/games/"
     base_path = os.path.join(base_path)
     structure = setting['folder_structure']
+
     new_structure = update_structure(structure, client_name, game_name)
     create_structure(base_path, new_structure, game_name ,client_name)
 

@@ -1,4 +1,4 @@
-{
+structure = {
   "base_folder": "/Users/pnt/development/OGA game/",
   "folder_structure": {
     "game_name": {

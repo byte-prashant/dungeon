@@ -7,29 +7,12 @@ from app.utils import find_and_replace_version, load_game_commands
 import argparse
 import subprocess
 import os
-from vt_runner import run_vt_runner
-
-def create_structure_from_json(client_name, gamename):
-    # Placeholder function for creating folder structure
-    print(f"Creating project structure for {client_name} and {gamename}")
+from app.command_executer import run_vt_runner
 
 
-def find_and_replace_version(game_directory_path, current_version, new_version):
-    # Placeholder function for version update
-    print(f"Updating version from {current_version} to {new_version}")
 
 
-def run_performance_test():
-    print("Running performance test cases...")
-    subprocess.run(['yagmi', 'dev', 'test', '-p'])
-
-
-def run_unit_test():
-    print("Running unit test cases...")
-    subprocess.run(['yagmi', 'dev', 'test', '-t'])
-
-
-if __name__ == "__main__":
+def main():
     # Create top-level parser (yagmi command)
     parser = argparse.ArgumentParser(prog='yagmi', description="A simple CLI tool.")
     subparsers = parser.add_subparsers(dest='command', help='Available commands')
@@ -40,6 +23,8 @@ if __name__ == "__main__":
 
     # 'init' subcommand under 'dev'
     dev_subparser_init = dev_subparsers.add_parser('init', help="Initialize a project")
+    # 'install' subcommand under 'dev'
+    dev_subparser_install = dev_subparsers.add_parser('install', help="Install a new game")
 
     # 'update_version' subcommand under 'dev'
     dev_subparser_update = dev_subparsers.add_parser('update_version', help="Update the project version")
@@ -59,10 +44,10 @@ if __name__ == "__main__":
             create_structure_from_json(client_name, gamename)
 
         elif args.subcommand == 'update_version':
-            current_version = input("Enter the current version ex-> 0.2.0:    ")
-            new_version = input("Enter the new version:    ")
+
+            new_version = input("Enter the new version ex-> 0.2.0:    ")
             game_directory_path = os.getcwd()
-            find_and_replace_version(game_directory_path, current_version, new_version)
+            find_and_replace_version(game_directory_path, new_version)
 
         elif args.subcommand == 'test':
 

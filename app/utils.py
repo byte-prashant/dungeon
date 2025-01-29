@@ -1,24 +1,18 @@
+import copy
 import json
 import os
 import re
-
+from app.config import structure
 def load_settings():
     """Load settings from a configuration file (settings.json)"""
-    settings_file = 'app/config.json'
-
-    if not os.path.exists(settings_file):
-        print(f"Settings file {settings_file} not found!")
-        return None
-
-    with open(settings_file, 'r') as f:
-        settings = json.load(f)
-
-    return settings
+    import copy
+    setting = copy.deepcopy(structure)
+    return setting
 
 def load_game_commands():
     """Load settings from a configuration file (settings.json)"""
     cwd = os.getcwd()
-    settings_file = cwd+'/command_config.json'
+    settings_file = cwd+'/game_command.json'
 
     if not os.path.exists(settings_file):
         print(f"Settings file {settings_file} not found!")
@@ -47,7 +41,7 @@ def print_folder_structure(folder_structure, indent=0):
             for item in value:
                 print(" " * (indent + 2) + f"|- {item}")
 
-def find_and_replace_version(directory, old_version, new_version):
+def find_and_replace_version(directory, new_version):
     """
     Recursively find files in the given directory, check for the old_version string in the top 10 lines,
     and replace it with the new_version.
@@ -122,11 +116,35 @@ def update_version(file_path,new_version):
             # Write the updated content back to the file
             with open(file_path, 'w') as file:
                 file.writelines(lines)
-            print("Version updated successfully.")
+            print("Version updated successfully for.", file_path)
         else:
-            print("No docstring found at the top of the file.")
+            print("No docstring found at the top of the file.", file_path)
 
     except FileNotFoundError:
         print(f"Error: The file '{file_path}' was not found.")
     except Exception as e:
         print(f"An error occurred: {e}")
+
+
+def find_file(root_directory, target_filename):
+    """
+    Recursively searches for a file in all subdirectories.
+
+    :param root_directory: The root directory to start the search from.
+    :param target_filename: The name of the file to search for.
+    :return: List of full paths to the found files.
+    """
+    found_files = []
+    for dirpath, dirnames, filenames in os.walk(root_directory):
+        if target_filename in filenames:
+            found_files.append(os.path.join(dirpath, target_filename))
+    return found_files
+
+def get_games_config():
+    target = "games.json"
+    found_files = find_file(os.getcwd(),target)
+    if found_files:
+        with open(found_files[0], 'r') as f:
+            settings = json.load(f)
+
+    return settings

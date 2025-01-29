@@ -133,7 +133,7 @@ def construct_vt_runner_command(module_name, parameters,process_name):
 def run_vt_runner(process_name,config):
     """Runs the vt-runner for the selected game based on user input."""
     # Retrieve the parameters and module name for the selected game from the config
-    if process_name in config[game_name]:
+    if config and  process_name in config:
         game_config = config[process_name]
         parameters = game_config["command_parameters"]
         module_name = game_config["module_name"]
@@ -145,6 +145,7 @@ def run_vt_runner(process_name,config):
         print(f"\nRunning command: {command}")
         try:
             # Use subprocess.Popen for real-time output streaming
+
             process = subprocess.Popen(command, cwd=get_oga_directory(), shell=True, stdout=sys.stdout, stderr=sys.stderr, text=True)
 
             # Wait for the command to finish
@@ -168,5 +169,5 @@ def run_vt_runner(process_name,config):
         except FileNotFoundError:
             print("vt-runner not found. Make sure it's installed and accessible.")
     else:
-        print(f"Game's command_config file is not present. Please add config to  location",os.getcwd())
+        print(f"Game's command_config file is not present. Please add config to  location",os.getcwd() ,"following command is not present",process_name)
 
