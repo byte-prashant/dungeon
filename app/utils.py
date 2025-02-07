@@ -3,6 +3,9 @@ import json
 import os
 import re
 from app.config import structure
+import ast
+import astor
+from pathlib import Path
 def load_settings():
     """Load settings from a configuration file (settings.json)"""
     import copy
@@ -73,10 +76,10 @@ def get_oga_directory():
             final_ans = os.path.join(final_ans, path_name)  # Reconstruct the path
             if "OGA" in path_name.upper():
                 break
-    else:
-        final_ans = current_directory  # Fallback to the original directory
+    if not  final_ans:
+        raise Exception("Unable to OGA root directory")
 
-    return root + final_ans
+    return root+final_ans
 
 
 
@@ -146,5 +149,153 @@ def get_games_config():
     if found_files:
         with open(found_files[0], 'r') as f:
             settings = json.load(f)
-
     return settings
+
+def get_engine_class():
+    try:
+        config = get_games_config()
+        engine_class_path = config['game'][0]['engine_class']
+        path_parts = engine_class_path.split(".")
+        engine_class = path_parts.pop(-1)
+        return ".".join(path_parts), engine_class
+    except Exception as e:
+        print("Found error while readind game config",e)
+
+def replace_function(file_path, function_name, new_function_code):
+    """
+    Replaces a function in a Python file with a new function.
+
+    Args:
+        file_path (str): Path to the Python file.
+        function_name (str): Name of the function to replace.
+        new_function_code (str): Code for the new function as a string.
+    """
+    try:
+        # Read the existing Python file
+        with open(file_path, "r") as file:
+            file_content = file.read()
+
+        # Parse the existing file content
+        tree = ast.parse(file_content)
+
+        # Parse the new function code
+        new_function_tree = ast.parse(new_function_code).body[0]
+
+        if not isinstance(new_function_tree, ast.FunctionDef):
+            raise ValueError("The provided new function code is not a valid function definition.")
+
+        # Find and replace the target function
+        for index, node in enumerate(tree.body):
+            if isinstance(node, ast.FunctionDef) and node.name == function_name:
+                tree.body[index] = new_function_tree
+                break
+        else:
+            raise ValueError(f"Function '{function_name}' not found in the file.")
+
+        # Convert the modified AST back to source code
+        modified_code = astor.to_source(tree)
+
+        # Write the updated code back to the file
+        with open(file_path, "w") as file:
+            file.write(modified_code)
+
+        print(f"Function '{function_name}' has been successfully replaced.")
+
+    except Exception as e:
+        print(f"Error: {e}")
+
+
+def replace_sh_function(file_path, target_function_name, new_function_definition):
+    try:
+        # Read the original file
+        with open(file_path, "r") as f:
+            lines = f.readlines()
+
+        # Regex pattern to find the function declaration
+        pattern = re.compile(rf'^\s*(function\s+)?{re.escape(target_function_name)}\s*\(\s*\)\s*{{?')
+
+        in_target_function = False
+        brace_count = 0
+        start_line = -1
+        end_line = -1
+
+        # Find the start and end of the target function
+        for i, line in enumerate(lines):
+            if not in_target_function:
+                if pattern.match(line.strip()):
+                    in_target_function = True
+                    start_line = i
+                    brace_count += line.count('{') - line.count('}')
+            else:
+                brace_count += line.count('{') - line.count('}')
+                if brace_count <= 0:
+                    end_line = i
+                    break
+
+        if start_line == -1 or end_line == -1:
+            raise ValueError(f"Function '{target_function_name}' not found!")
+
+        # Replace the old function with the new definition
+        new_lines = lines[:start_line] + [new_function_definition + "\n"] + lines[end_line + 1:]
+
+        # Write the modified content back to the file
+        with open(file_path, "w") as f:
+            f.writelines(new_lines)
+
+        print(f"Function '{target_function_name}' has been successfully replaced.")
+
+    except Exception as e:
+        print(f"Error: {e}")
+
+
+def create_and_update_yagmi_config(folder_path, data_dict):
+    # Create the hidden folder (e.g., .hidden_folder) if it doesn't exist
+    hidden_folder_path = Path(folder_path)
+    if not hidden_folder_path.exists():
+        hidden_folder_path.mkdir(exist_ok=True)
+        print("Db folder created")
+
+    # Define the file to store the boolean values
+    file_path = hidden_folder_path
+
+    # Load existing data if the file exists
+    if file_path.exists():
+        with open(file_path, 'r') as file:
+            data = json.load(file)
+    else:
+        data = {}
+
+    # Update the boolean value
+    data.update(**data_dict)
+
+    # Write back to the JSON file
+    with open(file_path, 'w') as file:
+        json.dump(data, file, indent=4)
+
+    print(f"config Stored in {file_path}")
+
+
+
+def get_yagmi_config(folder_path):
+    file_path = Path(folder_path)
+    if file_path.exists():
+        with open(file_path, 'r') as file:
+            return json.load(file)
+    return {}
+
+
+def create_yagmi_db(oga_path):
+    from app.utils import  create_and_update_yagmi_config
+    from app.config import yagmi_config, yagmi_db_config
+    file_path = yagmi_db_config['folder_name']+"/"+yagmi_db_config["config_file"]
+
+    if oga_path[-1] =="/":
+        oga_path = oga_path[:-1]
+    oga_path += "/"+file_path
+    create_and_update_yagmi_config(oga_path , yagmi_config)
+    print("Yagmi db has been created succesfully")
+
+
+def setup_yagmi():
+    oga_path = get_oga_directory()
+    create_yagmi_db(oga_path)

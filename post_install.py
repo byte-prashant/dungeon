@@ -2,7 +2,6 @@ import os
 import sys
 import subprocess
 
-
 def add_alias_to_shell():
     home_dir = os.path.expanduser("~")
     shell_config_files = ['.bashrc', '.zshrc']
@@ -38,5 +37,10 @@ def reload_shell_config(config_file):
         print(f"Shell {shell} not supported for auto-reload. Please reload manually.")
 
 
+
 if __name__ == "__main__":
-    add_alias_to_shell()
+    try:
+        add_alias_to_shell()
+
+    except Exception as e:
+        print("Error occured", e)

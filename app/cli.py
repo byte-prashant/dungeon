@@ -3,7 +3,7 @@ import argparse
 import os
 
 from app.build_folder_structure import create_structure_from_json
-from app.utils import find_and_replace_version, load_game_commands
+from app.utils import find_and_replace_version, load_game_commands, setup_yagmi
 import argparse
 import subprocess
 import os
@@ -20,7 +20,7 @@ def main():
     # 'dev' subcommand
     dev_parser = subparsers.add_parser('dev', help='Development-related commands')
     dev_subparsers = dev_parser.add_subparsers(dest='subcommand', help='Dev subcommands')
-
+    setup =  dev_subparsers.add_parser('setup', help="Initialize a db")
     # 'init' subcommand under 'dev'
     dev_subparser_init = dev_subparsers.add_parser('init', help="Initialize a project")
     # 'install' subcommand under 'dev'
@@ -37,7 +37,10 @@ def main():
     args = parser.parse_args()
 
     if args.command == 'dev':
-        if args.subcommand == 'init':
+        if args.subcommand == "setup":
+            setup_yagmi()
+
+        elif args.subcommand == 'init':
             client_name = input("Enter the client name: ")
             gamename = input("Enter the game name: ")
             print(f"Initializing project for client: {client_name} in {gamename}...")
