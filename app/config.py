@@ -30,11 +30,12 @@ structure = {
 yagmi_config = {
 
   "debug":False,
-  "vscode_debug_setup":False
+  "vscode_debug_setup":False,
+  "oga_root": ""
 }
 
 yagmi_db_config = {
   "folder_name": ".yagmi",
   "config_file": "config.json",
-  "oga_root": ""
+
 }

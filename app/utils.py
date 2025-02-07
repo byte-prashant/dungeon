@@ -256,7 +256,7 @@ def create_and_update_yagmi_config(folder_path, data_dict):
         print("Db folder created")
 
     # Define the file to store the boolean values
-    file_path = hidden_folder_path
+    file_path = hidden_folder_path/"config.json"
 
     # Load existing data if the file exists
     if file_path.exists():
@@ -287,7 +287,7 @@ def get_yagmi_config(folder_path):
 def create_yagmi_db(oga_path):
     from app.utils import  create_and_update_yagmi_config
     from app.config import yagmi_config, yagmi_db_config
-    file_path = yagmi_db_config['folder_name']+"/"+yagmi_db_config["config_file"]
+    file_path = yagmi_db_config['folder_name']
 
     if oga_path[-1] =="/":
         oga_path = oga_path[:-1]
