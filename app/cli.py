@@ -34,6 +34,10 @@ def main():
     dev_subparser_test.add_argument('-p', '--performance', action='store_true', help="Run performance test cases")
     dev_subparser_test.add_argument('-t', '--unit', action='store_true', help="Run unit test cases")
 
+    dev_subparser_test = dev_subparsers.add_parser('debug', help="Run test cases")
+    dev_subparser_test.add_argument('-a', '--activate', action='store_true', help="Activate debugging")
+    dev_subparser_test.add_argument('-d', '--deactivate', action='store_true', help="Deactivate debugging")
+
     args = parser.parse_args()
 
     if args.command == 'dev':
@@ -60,6 +64,12 @@ def main():
                 run_vt_runner("test", load_game_commands())  # Run unit test cases
             else:
                 print("Please specify a test type: -p for performance or -t for unit tests.")
+
+        elif args.subcommand == 'debug':
+            if args.activate:
+                from app.oga_debugger.vscode_setup import setup_debugger
+                setup_debugger()
+
 
     else:
         print("Invalid command or subcommand")

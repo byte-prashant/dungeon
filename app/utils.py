@@ -154,6 +154,7 @@ def get_games_config():
 def get_engine_class():
     try:
         config = get_games_config()
+        print("game config", config)
         engine_class_path = config['game'][0]['engine_class']
         path_parts = engine_class_path.split(".")
         engine_class = path_parts.pop(-1)
@@ -174,7 +175,7 @@ def replace_function(file_path, function_name, new_function_code):
         # Read the existing Python file
         with open(file_path, "r") as file:
             file_content = file.read()
-
+        print("reading the model file")
         # Parse the existing file content
         tree = ast.parse(file_content)
 
@@ -248,15 +249,15 @@ def replace_sh_function(file_path, target_function_name, new_function_definition
         print(f"Error: {e}")
 
 
-def create_and_update_yagmi_config(folder_path, data_dict):
+def create_and_update_yagmi_config(folder_path,  data_dict, file_name = "config.json"):
     # Create the hidden folder (e.g., .hidden_folder) if it doesn't exist
     hidden_folder_path = Path(folder_path)
     if not hidden_folder_path.exists():
         hidden_folder_path.mkdir(exist_ok=True)
-        print("Db folder created")
+        print( folder_path+" folder created")
 
     # Define the file to store the boolean values
-    file_path = hidden_folder_path/"config.json"
+    file_path = hidden_folder_path / file_name
 
     # Load existing data if the file exists
     if file_path.exists():
@@ -299,3 +300,6 @@ def create_yagmi_db(oga_path):
 def setup_yagmi():
     oga_path = get_oga_directory()
     create_yagmi_db(oga_path)
+
+
+

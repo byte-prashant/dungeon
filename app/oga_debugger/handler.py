@@ -12,10 +12,13 @@ class Handler:
 
         return
     def handle(self)->Optional[str]:
-        self.build_operation_steps()
-        if self.pipeline.steps:
-            self.pipeline.execute()
-        if self._next_handler:
-            return self._next_handler.handle()
+        try:
+            self.build_operation_steps()
+            if self.pipeline.steps:
+                self.pipeline.execute()
+            if self._next_handler:
+                return self._next_handler.handle()
 
-        return None
+            return None
+        except Exception as e:
+            print("Error while execution ",e)

@@ -13,19 +13,19 @@ class SetTimeoutForGunicorn(Handler):
 
     def change_time_out(self):
 
-        replace_sh_function(self.file_path,"start_rgs" )
+        replace_sh_function(self.file_path+"/do","start_rgs",self.new_fun_def )
 
         return
     def new_function_definition(self):
         new_fun_def = """
-        function start_rgs() {
-            if ! database_setup
-            then
-                return "$?"
-            fi
-            gunicorn --reload --paste config.ini -b "${HOST:-0.0.0.0}":"${PORT:-6543}" --timeout 1200 "$@"
+function start_rgs() {
+    if ! database_setup
+    then
+        return "$?"
+    fi
+        gunicorn --worker 1 --timeout 1200 --paste config.ini -b "${HOST:-0.0.0.0}":"${PORT:-6543}"11 "$@"
 
-        }
+}
         """
         self.new_fun_def = new_fun_def.strip()
 
