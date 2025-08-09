@@ -2,6 +2,7 @@ import copy
 import json
 import os
 import re
+import subprocess
 from app.config import structure
 import ast
 import astor
@@ -302,4 +303,46 @@ def setup_yagmi():
     create_yagmi_db(oga_path)
 
 
+
+
+def check_version_changes():
+    """Check recent git changes for version-related modifications."""
+    proceed = input("Check for version changes? (y/N): ")
+    if proceed.strip().lower() != 'y':
+        print("Skipping version check.")
+        return
+
+    try:
+        result = subprocess.run(
+            ['git', 'diff', '--name-only', 'HEAD~1'],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=True,
+        )
+    except subprocess.CalledProcessError as e:
+        print("Error obtaining git diff:", e.stderr.strip())
+        return
+
+    files = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+    version_files = []
+
+    for file in files:
+        if not os.path.isfile(file):
+            continue
+        diff = subprocess.run(
+            ['git', 'diff', 'HEAD~1', '--', file],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        if re.search(r'version', diff.stdout, re.IGNORECASE):
+            version_files.append(file)
+
+    if version_files:
+        print("Version-related changes detected in:")
+        for f in version_files:
+            print(f" - {f}")
+    else:
+        print("No version-related changes found.")
 

@@ -1,13 +1,14 @@
 # my_tool/cli.py
 import argparse
 import os
-
-from app.build_folder_structure import create_structure_from_json
-from app.utils import find_and_replace_version, load_game_commands, setup_yagmi
-import argparse
 import subprocess
-import os
-from app.command_executer import run_vt_runner
+
+from app.utils import (
+    find_and_replace_version,
+    load_game_commands,
+    setup_yagmi,
+    check_version_changes,
+)
 
 
 
@@ -19,6 +20,7 @@ def main():
 
     # 'dev' subcommand
     dev_parser = subparsers.add_parser('dev', help='Development-related commands')
+    dev_parser.add_argument('--git_push', action='store_true', help='Check for version changes before pushing')
     dev_subparsers = dev_parser.add_subparsers(dest='subcommand', help='Dev subcommands')
     setup =  dev_subparsers.add_parser('setup', help="Initialize a db")
     # 'init' subcommand under 'dev'
@@ -41,10 +43,15 @@ def main():
     args = parser.parse_args()
 
     if args.command == 'dev':
-        if args.subcommand == "setup":
+        if args.git_push:
+            check_version_changes()
+
+        elif args.subcommand == "setup":
             setup_yagmi()
 
         elif args.subcommand == 'init':
+            from app.build_folder_structure import create_structure_from_json
+
             client_name = input("Enter the client name: ")
             gamename = input("Enter the game name: ")
             print(f"Initializing project for client: {client_name} in {gamename}...")
@@ -57,9 +64,10 @@ def main():
             find_and_replace_version(game_directory_path, new_version)
 
         elif args.subcommand == 'test':
+            from app.command_executer import run_vt_runner
 
             if args.performance:
-                run_vt_runner("performance",load_game_commands() )  # Run performance test cases
+                run_vt_runner("performance", load_game_commands())  # Run performance test cases
             elif args.unit:
                 run_vt_runner("test", load_game_commands())  # Run unit test cases
             else:
