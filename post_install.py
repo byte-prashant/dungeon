@@ -37,10 +37,27 @@ def reload_shell_config(config_file):
         print(f"Shell {shell} not supported for auto-reload. Please reload manually.")
 
 
+def install_pre_push_hook():
+    repo_root = os.path.dirname(os.path.abspath(__file__))
+    hooks_dir = os.path.join(repo_root, '.git', 'hooks')
+
+    if not os.path.isdir(hooks_dir):
+        print("Git hooks directory not found. Skipping pre-push hook installation.")
+        return
+
+    hook_path = os.path.join(hooks_dir, 'pre-push')
+    with open(hook_path, 'w') as f:
+        f.write('#!/bin/sh\n')
+        f.write('yagmi dev --git_push\n')
+    os.chmod(hook_path, 0o755)
+    print(f"pre-push hook installed at {hook_path}")
+
+
 
 if __name__ == "__main__":
     try:
         add_alias_to_shell()
+        install_pre_push_hook()
 
     except Exception as e:
         print("Error occured", e)
