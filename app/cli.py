@@ -1,13 +1,9 @@
-# my_tool/cli.py
 import argparse
 import os
 
 from app.build_folder_structure import create_structure_from_json
 from app.utils import find_and_replace_version, load_game_commands, setup_yagmi
-import argparse
-import subprocess
-import os
-from app.command_executer import run_vt_runner
+from app.command_executer import run_vt_runner, upload_engine, run_remote_rtp
 
 
 
@@ -37,6 +33,13 @@ def main():
     dev_subparser_test = dev_subparsers.add_parser('debug', help="Run test cases")
     dev_subparser_test.add_argument('-a', '--activate', action='store_true', help="Activate debugging")
     dev_subparser_test.add_argument('-d', '--deactivate', action='store_true', help="Deactivate debugging")
+
+    remote_parser = subparsers.add_parser('remote', help='Remote machine commands')
+    remote_subparsers = remote_parser.add_subparsers(dest='subcommand', help='Remote subcommands')
+    remote_upload_parser = remote_subparsers.add_parser('upload-engine', help='Upload the current folder to a remote engine path using scp')
+    remote_upload_parser.add_argument('--host', required=True, help='Remote ssh target, for example ubuntu@12.134.22.34')
+    remote_rtp_parser = remote_subparsers.add_parser('run-rtp', help='Run the current game RTP on a remote machine inside tmux')
+    remote_rtp_parser.add_argument('--host', required=True, help='Remote ssh target, for example ubuntu@12.134.22.34')
 
     args = parser.parse_args()
 
@@ -69,7 +72,11 @@ def main():
             if args.activate:
                 from app.oga_debugger.vscode_setup import setup_debugger
                 setup_debugger()
-
+    elif args.command == 'remote':
+        if args.subcommand == 'upload-engine':
+            upload_engine(args.host, load_game_commands())
+        elif args.subcommand == 'run-rtp':
+            run_remote_rtp(args.host, load_game_commands())
 
     else:
         print("Invalid command or subcommand")
