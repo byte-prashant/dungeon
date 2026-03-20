@@ -3,7 +3,7 @@ import os
 
 from app.build_folder_structure import create_structure_from_json
 from app.utils import find_and_replace_version, load_game_commands, setup_yagmi
-from app.command_executer import run_vt_runner, upload_engine
+from app.command_executer import run_vt_runner, upload_engine, run_remote_rtp
 
 
 
@@ -38,6 +38,8 @@ def main():
     remote_subparsers = remote_parser.add_subparsers(dest='subcommand', help='Remote subcommands')
     remote_upload_parser = remote_subparsers.add_parser('upload-engine', help='Upload the current folder to a remote engine path using scp')
     remote_upload_parser.add_argument('--host', required=True, help='Remote ssh target, for example ubuntu@12.134.22.34')
+    remote_rtp_parser = remote_subparsers.add_parser('run-rtp', help='Run the current game RTP on a remote machine inside tmux')
+    remote_rtp_parser.add_argument('--host', required=True, help='Remote ssh target, for example ubuntu@12.134.22.34')
 
     args = parser.parse_args()
 
@@ -73,6 +75,8 @@ def main():
     elif args.command == 'remote':
         if args.subcommand == 'upload-engine':
             upload_engine(args.host, load_game_commands())
+        elif args.subcommand == 'run-rtp':
+            run_remote_rtp(args.host, load_game_commands())
 
     else:
         print("Invalid command or subcommand")
