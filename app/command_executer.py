@@ -2,7 +2,6 @@ import subprocess
 from decimal import Decimal
 import sys
 import os
-from redis.cluster import command
 from .utils import get_oga_directory
 # Configuration for each game
 config = {
@@ -171,3 +170,36 @@ def run_vt_runner(process_name,config):
     else:
         print(f"Game's command_config file is not present. Please add config to  location",os.getcwd() ,"following command is not present",process_name)
 
+
+def upload_engine(host, config):
+    """Upload the current working folder to the remote engine path using scp."""
+    if not config:
+        print("Game command config is not available. Unable to upload engine.", file=sys.stderr)
+        sys.exit(1)
+
+    remote_config = config.get("remote", {})
+    remote_engine_path = remote_config.get("engine_path")
+
+    if not remote_engine_path:
+        print("Missing 'remote.engine_path' in game_command.json.", file=sys.stderr)
+        sys.exit(1)
+
+    current_directory = os.getcwd()
+    folder_name = os.path.basename(current_directory.rstrip(os.sep))
+    parent_directory = os.path.dirname(current_directory.rstrip(os.sep))
+
+    if not folder_name:
+        print("Unable to determine the current folder name for upload.", file=sys.stderr)
+        sys.exit(1)
+
+    command = ["scp", "-r", folder_name, f"{host}:{remote_engine_path}"]
+    print(f"Running command: {' '.join(command)}")
+
+    try:
+        subprocess.run(command, cwd=parent_directory or None, check=True)
+    except subprocess.CalledProcessError as error:
+        print(f"Engine upload failed with exit code {error.returncode}.", file=sys.stderr)
+        sys.exit(error.returncode)
+    except FileNotFoundError:
+        print("scp not found. Make sure it is installed and accessible.", file=sys.stderr)
+        sys.exit(1)
