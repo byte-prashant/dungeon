@@ -1,4 +1,5 @@
 import os
+import tarfile
 import tempfile
 import unittest
 from unittest.mock import call, patch
@@ -193,6 +194,119 @@ class RemoteCommandTests(unittest.TestCase):
         scp_command = mock_run_checked.call_args.args[0]
         self.assertEqual(scp_command[0], "scp")
         self.assertEqual(scp_command[2], "ubuntu@12.134.22.34:/srv/rgs/tmp/sample-game_rtp.sh")
+
+
+class UploadEngineTests(unittest.TestCase):
+    def test_collect_upload_paths_skips_gitignored_entries(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            game_dir = os.path.join(temp_dir, "sample-game")
+            os.mkdir(game_dir)
+
+            _write_file(
+                os.path.join(game_dir, ".gitignore"),
+                ".idea/\napp/file_content/\ndist/\n*.log\n!keep.log\n.gitignore\n",
+            )
+            _write_file(os.path.join(game_dir, ".idea", "workspace.xml"))
+            _write_file(os.path.join(game_dir, "app", "file_content", "generated.py"))
+            _write_file(os.path.join(game_dir, "app", "main.py"))
+            _write_file(os.path.join(game_dir, "dist", "bundle.js"))
+            _write_file(os.path.join(game_dir, "logs", "test.log"))
+            _write_file(os.path.join(game_dir, "logs", "keep.log"))
+
+            selected_directories, selected_files, skipped_paths = _collect_upload_paths(game_dir)
+
+        self.assertIn("app", selected_directories)
+        self.assertIn("logs", selected_directories)
+        self.assertIn("app/main.py", selected_files)
+        self.assertIn("logs/keep.log", selected_files)
+        self.assertNotIn(".gitignore", selected_files)
+        self.assertNotIn("app/file_content/generated.py", selected_files)
+        self.assertNotIn("dist/bundle.js", selected_files)
+        self.assertNotIn("logs/test.log", selected_files)
+        self.assertIn(".idea/", skipped_paths)
+        self.assertIn("app/file_content/", skipped_paths)
+
+    def test_upload_engine_uploads_filtered_archive_and_extracts_remote(self):
+        config = {
+            "remote": {
+                "engine_path": "/srv/engine",
+            }
+        }
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            game_dir = os.path.join(temp_dir, "sample-game")
+            os.mkdir(game_dir)
+
+            _write_file(os.path.join(game_dir, ".gitignore"), "build/\n.gitignore\n")
+            _write_file(os.path.join(game_dir, "app", "main.py"), "print('ok')\n")
+            _write_file(os.path.join(game_dir, "build", "output.txt"), "skip\n")
+
+            captured_upload = {}
+
+            def capture_upload(command, **kwargs):
+                captured_upload["command"] = command
+                with tarfile.open(command[1], "r:gz") as archive:
+                    captured_upload["members"] = sorted(archive.getnames())
+
+            with patch("app.command_executer.os.getcwd", return_value=game_dir), patch(
+                "app.command_executer._run_checked", side_effect=capture_upload
+            ) as mock_run_checked, patch(
+                "app.command_executer._ssh_bash_run"
+            ) as mock_ssh_bash_run:
+                upload_engine("ubuntu@12.134.22.34", config)
+
+        self.assertEqual(mock_run_checked.call_count, 1)
+        self.assertEqual(captured_upload["command"][0], "scp")
+        self.assertEqual(
+            captured_upload["command"][2],
+            "ubuntu@12.134.22.34:/srv/engine/.sample-game_upload.tar.gz",
+        )
+        self.assertIn("sample-game/app", captured_upload["members"])
+        self.assertIn("sample-game/app/main.py", captured_upload["members"])
+        self.assertNotIn("sample-game/.gitignore", captured_upload["members"])
+        self.assertNotIn("sample-game/build/output.txt", captured_upload["members"])
+        self.assertEqual(
+            mock_ssh_bash_run.call_args_list[0].args,
+            ("ubuntu@12.134.22.34", "mkdir -p /srv/engine"),
+        )
+        self.assertEqual(
+            mock_ssh_bash_run.call_args_list[1].args,
+            (
+                "ubuntu@12.134.22.34",
+                "tar -xzf /srv/engine/.sample-game_upload.tar.gz -C /srv/engine",
+            ),
+        )
+        self.assertEqual(
+            mock_ssh_bash_run.call_args_list[2].args,
+            ("ubuntu@12.134.22.34", "rm -f /srv/engine/.sample-game_upload.tar.gz"),
+        )
+        self.assertEqual(mock_ssh_bash_run.call_args_list[2].kwargs, {"check": False})
+
+    def test_upload_engine_stops_when_everything_is_ignored(self):
+        config = {
+            "remote": {
+                "engine_path": "/srv/engine",
+            }
+        }
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            game_dir = os.path.join(temp_dir, "sample-game")
+            os.mkdir(game_dir)
+
+            _write_file(os.path.join(game_dir, ".gitignore"), "*\n")
+            _write_file(os.path.join(game_dir, "ignored.txt"), "skip\n")
+
+            with patch("app.command_executer.os.getcwd", return_value=game_dir), patch(
+                "app.command_executer._run_checked"
+            ) as mock_run_checked, patch(
+                "app.command_executer._ssh_bash_run"
+            ) as mock_ssh_bash_run:
+                with self.assertRaises(SystemExit) as error:
+                    upload_engine("ubuntu@12.134.22.34", config)
+
+        self.assertEqual(error.exception.code, 1)
+        mock_run_checked.assert_not_called()
+        mock_ssh_bash_run.assert_not_called()
 
 
 if __name__ == "__main__":
