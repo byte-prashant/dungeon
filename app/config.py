@@ -9,7 +9,7 @@ structure = {
           ],
           "tests": [
             "performance_test.py",
-            "test.py",
+            "tests.py",
             "volume_tester.py"
           ],
           "defs.py": "",
