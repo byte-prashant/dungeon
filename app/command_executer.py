@@ -347,9 +347,13 @@ def _write_remote_rtp_script(rgs_path, activate_path, oga_dir, rtp_command):
         [
             "#!/usr/bin/env bash",
             "set -euo pipefail",
+            f"echo {shlex.quote(f'[run-rtp] Entering remote workspace: {rgs_path}')}",
             f"cd {shlex.quote(rgs_path)}",
+            f"echo {shlex.quote(f'[run-rtp] Activating environment: {activate_path}')}",
             f"source {shlex.quote(activate_path)}",
+            f"echo {shlex.quote(f'[run-rtp] Switching to OGA directory: {oga_dir}')}",
             f"cd {shlex.quote(oga_dir)}",
+            f"echo {shlex.quote('[run-rtp] Starting RTP command.')}",
             rtp_command,
             "",
         ]
@@ -382,6 +386,10 @@ def _remote_runtime_prefix(rgs_path, activate_path, oga_dir):
     )
 
 
+def _print_run_rtp_progress(message):
+    print(f"[run-rtp] {message}", flush=True)
+
+
 def run_remote_rtp(host, config):
     """Run RTP on a remote server inside tmux using a generated command file."""
     try:
@@ -399,12 +407,16 @@ def run_remote_rtp(host, config):
         print(str(error), file=sys.stderr)
         sys.exit(1)
 
+    _print_run_rtp_progress(f"Preparing remote RTP run for '{game_name}'.")
     local_script_path = _write_remote_rtp_script(rgs_path, activate_path, oga_dir, rtp_command)
     remote_command_dir = os.path.dirname(remote_command_file)
     runtime_prefix = _remote_runtime_prefix(rgs_path, activate_path, oga_dir)
     remote_script_runner = f"sh {shlex.quote(os.path.join(bash_dir, os.path.basename(remote_command_file)))}"
 
     try:
+        _print_run_rtp_progress(
+            f"Connecting to {host} and checking tmux session '{session_name}'."
+        )
         existing_sessions = _ssh_bash_run(host, f"{runtime_prefix} && tmux list-sessions", check=False)
         session_exists = session_name in (existing_sessions.stdout or "")
         if session_exists:
@@ -414,14 +426,22 @@ def run_remote_rtp(host, config):
             )
             sys.exit(1)
 
+        _print_run_rtp_progress(f"Ensuring remote command directory exists: {remote_command_dir}")
         _ssh_bash_run(host, f"mkdir -p {shlex.quote(remote_command_dir)}")
+        _print_run_rtp_progress(f"Uploading generated bash file to {remote_command_file}")
         _run_checked(["scp", local_script_path, f"{host}:{remote_command_file}"])
+        _print_run_rtp_progress(f"Making uploaded script executable: {remote_command_file}")
         _ssh_bash_run(host, f"chmod +x {shlex.quote(remote_command_file)}")
+        _print_run_rtp_progress(
+            f"Activating the remote environment and installing {install_path}"
+        )
         _ssh_bash_run(host, f"{runtime_prefix} && pip install {shlex.quote(install_path)}")
+        _print_run_rtp_progress(f"Starting tmux session '{session_name}'")
         _ssh_bash_run(
             host,
             f"{runtime_prefix} && tmux new -d -s {shlex.quote(session_name)} {shlex.quote(remote_script_runner)}",
         )
+        _print_run_rtp_progress(f"Verifying tmux session '{session_name}' is running")
         started_sessions = _ssh_bash_run(host, f"{runtime_prefix} && tmux list-sessions", check=False)
         if session_name not in (started_sessions.stdout or ""):
             print(
