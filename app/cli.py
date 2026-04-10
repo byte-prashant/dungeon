@@ -45,21 +45,25 @@ def main():
 
     if args.command == 'dev':
         if args.subcommand == "setup":
+            from app.utils import setup_yagmi
             setup_yagmi()
 
         elif args.subcommand == 'init':
+            from app.build_folder_structure import create_structure_from_json
             client_name = input("Enter the client name: ")
             gamename = input("Enter the game name: ")
             print(f"Initializing project for client: {client_name} in {gamename}...")
             create_structure_from_json(client_name, gamename)
 
         elif args.subcommand == 'update_version':
-
+            from app.utils import find_and_replace_version
             new_version = input("Enter the new version ex-> 0.2.0:    ")
             game_directory_path = os.getcwd()
             find_and_replace_version(game_directory_path, new_version)
 
         elif args.subcommand == 'test':
+            from app.command_executer import run_vt_runner
+            from app.utils import load_game_commands
 
             if args.performance:
                 run_vt_runner("performance",load_game_commands() )  # Run performance test cases
