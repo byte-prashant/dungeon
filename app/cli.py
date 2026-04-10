@@ -1,6 +1,13 @@
 import argparse
 import os
 
+from app.build_folder_structure import create_structure_from_json
+from app.utils import find_and_replace_version, load_game_commands, setup_yagmi
+from app.command_executer import run_vt_runner, upload_engine, run_remote_rtp
+
+
+
+
 def main():
     # Create top-level parser (yagmi command)
     parser = argparse.ArgumentParser(prog='yagmi', description="A simple CLI tool.")
@@ -70,8 +77,6 @@ def main():
                 from app.oga_debugger.vscode_setup import setup_debugger
                 setup_debugger()
     elif args.command == 'remote':
-        from app.utils import load_game_commands
-        from app.command_executer import upload_engine, run_remote_rtp
         if args.subcommand == 'upload-engine':
             upload_engine(args.host, load_game_commands())
         elif args.subcommand == 'run-rtp':
