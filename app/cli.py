@@ -1,10 +1,6 @@
 import argparse
 import os
 
-from app.build_folder_structure import create_structure_from_json
-from app.utils import find_and_replace_version, load_game_commands, setup_yagmi
-from app.command_executer import run_vt_runner, upload_engine, run_remote_rtp
-
 
 
 
@@ -40,26 +36,35 @@ def main():
     remote_upload_parser.add_argument('--host', required=True, help='Remote ssh target, for example ubuntu@12.134.22.34')
     remote_rtp_parser = remote_subparsers.add_parser('run-rtp', help='Run the current game RTP on a remote machine inside tmux')
     remote_rtp_parser.add_argument('--host', required=True, help='Remote ssh target, for example ubuntu@12.134.22.34')
+    remote_pull_parser = remote_subparsers.add_parser('pull-file', help='Pull a file or directory from the remote machine using scp')
+    remote_pull_parser.add_argument('--host', required=True, help='Remote ssh target, for example ubuntu@12.134.22.34')
+    remote_pull_parser.add_argument('--remote-path', required=True, help='Remote file or directory path to download')
+    remote_pull_parser.add_argument('--output-dir', default='.', help='Local directory where the file should be downloaded')
+    remote_pull_parser.add_argument('-r', '--recursive', action='store_true', help='Recursively copy a remote directory')
 
     args = parser.parse_args()
 
     if args.command == 'dev':
         if args.subcommand == "setup":
+            from app.utils import setup_yagmi
             setup_yagmi()
 
         elif args.subcommand == 'init':
+            from app.build_folder_structure import create_structure_from_json
             client_name = input("Enter the client name: ")
             gamename = input("Enter the game name: ")
             print(f"Initializing project for client: {client_name} in {gamename}...")
             create_structure_from_json(client_name, gamename)
 
         elif args.subcommand == 'update_version':
-
+            from app.utils import find_and_replace_version
             new_version = input("Enter the new version ex-> 0.2.0:    ")
             game_directory_path = os.getcwd()
             find_and_replace_version(game_directory_path, new_version)
 
         elif args.subcommand == 'test':
+            from app.command_executer import run_vt_runner
+            from app.utils import load_game_commands
 
             if args.performance:
                 run_vt_runner("performance",load_game_commands() )  # Run performance test cases
@@ -74,9 +79,16 @@ def main():
                 setup_debugger()
     elif args.command == 'remote':
         if args.subcommand == 'upload-engine':
+            from app.command_executer import upload_engine
+            from app.utils import load_game_commands
             upload_engine(args.host, load_game_commands())
         elif args.subcommand == 'run-rtp':
+            from app.command_executer import run_remote_rtp
+            from app.utils import load_game_commands
             run_remote_rtp(args.host, load_game_commands())
+        elif args.subcommand == 'pull-file':
+            from app.command_executer import pull_remote_file
+            pull_remote_file(args.host, args.remote_path, args.output_dir, args.recursive)
 
     else:
         print("Invalid command or subcommand")
