@@ -15,5 +15,6 @@ Remote RTP
  -- Optionally set `remote.rgs_path`, `remote.oga_dir`, `remote.bash_dir`, `remote.command_file_path`, `remote.venv_activate`, `remote.tmux_session_prefix`, and `remote.install_base_path`
  -- Run `yagmi remote run-rtp --host ubuntu@12.134.22.34`
  -- The command checks `tmux list-sessions`, uploads `bash/<file_name>`, installs `engine/games/<game-name>`, and starts `tmux new -d 'sh bash/<file_name>'`
+ -- Each remote step is logged with `[remote-step]` so you can audit the exact ssh/scp command sequence
  -- If the tmux session for the current folder is already running, the command stops and informs the user
     

@@ -32,28 +32,6 @@ class CliRemoteCommandTests(unittest.TestCase):
         mock_load_commands.assert_called_once_with()
         mock_upload_engine.assert_called_once_with("ubuntu@12.134.22.34", {"remote": {"engine_path": "/x"}})
 
-    def test_remote_pull_file_dispatches_executor(self):
-        args = Namespace(
-            command="remote",
-            subcommand="pull-file",
-            host="ubuntu@12.134.22.34",
-            remote_path="/srv/rgs/tmp/report.xlsx",
-            output_dir=".",
-            recursive=False,
-        )
-
-        with patch("argparse.ArgumentParser.parse_args", return_value=args), patch(
-            "app.command_executer.pull_remote_file"
-        ) as mock_pull_remote_file:
-            main()
-
-        mock_pull_remote_file.assert_called_once_with(
-            "ubuntu@12.134.22.34",
-            "/srv/rgs/tmp/report.xlsx",
-            ".",
-            False,
-        )
-
 
 if __name__ == "__main__":
     unittest.main()

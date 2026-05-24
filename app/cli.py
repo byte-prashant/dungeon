@@ -1,9 +1,6 @@
 import argparse
 import os
 
-
-
-
 def main():
     # Create top-level parser (yagmi command)
     parser = argparse.ArgumentParser(prog='yagmi', description="A simple CLI tool.")
@@ -36,11 +33,6 @@ def main():
     remote_upload_parser.add_argument('--host', required=True, help='Remote ssh target, for example ubuntu@12.134.22.34')
     remote_rtp_parser = remote_subparsers.add_parser('run-rtp', help='Run the current game RTP on a remote machine inside tmux')
     remote_rtp_parser.add_argument('--host', required=True, help='Remote ssh target, for example ubuntu@12.134.22.34')
-    remote_pull_parser = remote_subparsers.add_parser('pull-file', help='Pull a file or directory from the remote machine using scp')
-    remote_pull_parser.add_argument('--host', required=True, help='Remote ssh target, for example ubuntu@12.134.22.34')
-    remote_pull_parser.add_argument('--remote-path', required=True, help='Remote file or directory path to download')
-    remote_pull_parser.add_argument('--output-dir', default='.', help='Local directory where the file should be downloaded')
-    remote_pull_parser.add_argument('-r', '--recursive', action='store_true', help='Recursively copy a remote directory')
 
     args = parser.parse_args()
 
@@ -78,17 +70,12 @@ def main():
                 from app.oga_debugger.vscode_setup import setup_debugger
                 setup_debugger()
     elif args.command == 'remote':
+        from app.utils import load_game_commands
+        from app.command_executer import upload_engine, run_remote_rtp
         if args.subcommand == 'upload-engine':
-            from app.command_executer import upload_engine
-            from app.utils import load_game_commands
             upload_engine(args.host, load_game_commands())
         elif args.subcommand == 'run-rtp':
-            from app.command_executer import run_remote_rtp
-            from app.utils import load_game_commands
             run_remote_rtp(args.host, load_game_commands())
-        elif args.subcommand == 'pull-file':
-            from app.command_executer import pull_remote_file
-            pull_remote_file(args.host, args.remote_path, args.output_dir, args.recursive)
 
     else:
         print("Invalid command or subcommand")
