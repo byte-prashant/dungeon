@@ -4,8 +4,18 @@ import os
 import re
 from app.config import structure
 import ast
-import astor
 from pathlib import Path
+
+
+def _ast_to_source(tree):
+    if hasattr(ast, "unparse"):
+        return ast.unparse(tree)
+
+    import astor
+
+    return astor.to_source(tree)
+
+
 def load_settings():
     """Load settings from a configuration file (settings.json)"""
     import copy
@@ -194,7 +204,7 @@ def replace_function(file_path, function_name, new_function_code):
             raise ValueError(f"Function '{function_name}' not found in the file.")
 
         # Convert the modified AST back to source code
-        modified_code = astor.to_source(tree)
+        modified_code = _ast_to_source(tree)
 
         # Write the updated code back to the file
         with open(file_path, "w") as file:
@@ -300,6 +310,5 @@ def create_yagmi_db(oga_path):
 def setup_yagmi():
     oga_path = get_oga_directory()
     create_yagmi_db(oga_path)
-
 
 

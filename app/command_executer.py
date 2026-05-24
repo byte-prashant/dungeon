@@ -1,5 +1,7 @@
+import fnmatch
+import os
+import shlex
 import subprocess
-from decimal import Decimal
 import sys
 import os
 import shlex
@@ -88,6 +90,196 @@ config = {
 }
 
 
+@dataclass
+class _GitIgnoreRule:
+    pattern: str
+    negated: bool = False
+    directory_only: bool = False
+    anchored: bool = False
+    basename_only: bool = False
+
+
+def _normalize_relative_path(path):
+    normalized = str(path).replace(os.sep, "/")
+    while normalized.startswith("./"):
+        normalized = normalized[2:]
+    return normalized.strip("/")
+
+
+def _load_gitignore_rules(project_root):
+    gitignore_path = os.path.join(project_root, ".gitignore")
+    if not os.path.exists(gitignore_path):
+        return []
+
+    rules = []
+    with open(gitignore_path, "r", encoding="utf-8") as gitignore_file:
+        for raw_line in gitignore_file:
+            line = raw_line.strip()
+            if not line or line.startswith("#"):
+                continue
+
+            negated = line.startswith("!")
+            if negated:
+                line = line[1:].strip()
+
+            if not line:
+                continue
+
+            anchored = line.startswith("/")
+            if anchored:
+                line = line.lstrip("/")
+
+            directory_only = line.endswith("/")
+            if directory_only:
+                line = line.rstrip("/")
+
+            if not line:
+                continue
+
+            normalized_pattern = line.replace("\\", "/")
+            rules.append(
+                _GitIgnoreRule(
+                    pattern=normalized_pattern,
+                    negated=negated,
+                    directory_only=directory_only,
+                    anchored=anchored,
+                    basename_only="/" not in normalized_pattern,
+                )
+            )
+
+    return rules
+
+
+def _rule_matches_path(rule, relative_path):
+    normalized_path = _normalize_relative_path(relative_path)
+    if not normalized_path:
+        return False
+
+    if rule.basename_only:
+        if rule.anchored:
+            return fnmatch.fnmatchcase(normalized_path, rule.pattern)
+
+        basename = normalized_path.rsplit("/", 1)[-1]
+        return fnmatch.fnmatchcase(basename, rule.pattern)
+
+    return fnmatch.fnmatchcase(normalized_path, rule.pattern)
+
+
+def _directory_candidates(relative_path, is_dir):
+    normalized_path = _normalize_relative_path(relative_path)
+    if not normalized_path:
+        return []
+
+    parts = normalized_path.split("/")
+    max_length = len(parts) if is_dir else len(parts) - 1
+    return ["/".join(parts[:index]) for index in range(1, max_length + 1)]
+
+
+def _is_gitignored(relative_path, is_dir, rules):
+    normalized_path = _normalize_relative_path(relative_path)
+    if not normalized_path:
+        return False
+
+    directory_candidates = _directory_candidates(normalized_path, is_dir)
+    ignored = False
+
+    for rule in rules:
+        if rule.directory_only:
+            matched = any(_rule_matches_path(rule, candidate) for candidate in directory_candidates)
+        else:
+            matched = _rule_matches_path(rule, normalized_path) or any(
+                _rule_matches_path(rule, candidate) for candidate in directory_candidates
+            )
+
+        if matched:
+            ignored = not rule.negated
+
+    return ignored
+
+
+def _collect_upload_paths(project_root):
+    rules = _load_gitignore_rules(project_root)
+    selected_directories = []
+    selected_files = []
+    skipped_paths = []
+
+    for current_root, dirnames, filenames in os.walk(project_root):
+        dirnames.sort()
+        filenames.sort()
+
+        relative_root = os.path.relpath(current_root, project_root)
+        if relative_root == ".":
+            relative_root = ""
+        else:
+            relative_root = _normalize_relative_path(relative_root)
+
+        for dirname in dirnames:
+            relative_path = f"{relative_root}/{dirname}" if relative_root else dirname
+            if _is_gitignored(relative_path, True, rules):
+                skipped_paths.append(f"{relative_path}/")
+                continue
+
+            selected_directories.append(relative_path)
+
+        for filename in filenames:
+            relative_path = f"{relative_root}/{filename}" if relative_root else filename
+            if _is_gitignored(relative_path, False, rules):
+                skipped_paths.append(relative_path)
+                continue
+
+            selected_files.append(relative_path)
+
+    return selected_directories, selected_files, skipped_paths
+
+
+def _archive_member_path(folder_name, relative_path=""):
+    normalized_path = _normalize_relative_path(relative_path)
+    if not normalized_path:
+        return folder_name
+
+    return f"{folder_name}/{normalized_path}"
+
+
+def _create_filtered_upload_archive(project_root, folder_name):
+    selected_directories, selected_files, skipped_paths = _collect_upload_paths(project_root)
+    if not selected_directories and not selected_files:
+        raise ValueError("No files were selected for upload after applying .gitignore rules.")
+
+    archive_file = tempfile.NamedTemporaryFile(delete=False, suffix="_upload.tar.gz")
+    archive_path = archive_file.name
+    archive_file.close()
+
+    try:
+        with tarfile.open(archive_path, "w:gz") as archive:
+            for directory in selected_directories:
+                archive.add(
+                    os.path.join(project_root, directory),
+                    arcname=_archive_member_path(folder_name, directory),
+                    recursive=False,
+                )
+
+            for file_path in selected_files:
+                archive.add(
+                    os.path.join(project_root, file_path),
+                    arcname=_archive_member_path(folder_name, file_path),
+                    recursive=False,
+                )
+    except Exception:
+        if os.path.exists(archive_path):
+            os.unlink(archive_path)
+        raise
+
+    return archive_path, {
+        "selected_directories": len(selected_directories),
+        "selected_files": len(selected_files),
+        "skipped_paths": len(skipped_paths),
+    }
+
+
+def _remote_upload_archive_path(remote_engine_path, folder_name):
+    return os.path.join(remote_engine_path, f".{folder_name}_upload.tar.gz")
+
+
 def get_input_for_parameter(param_name, param_type, help_text, default_value):
     """Prompt the user for input and handle the conversion of input to the correct type."""
     user_input = input(f"{help_text} (default: {default_value}): ").strip()
@@ -135,6 +327,8 @@ def run_vt_runner(process_name,config):
     """Runs the vt-runner for the selected game based on user input."""
     # Retrieve the parameters and module name for the selected game from the config
     if config and  process_name in config:
+        from .utils import get_oga_directory
+
         game_config = config[process_name]
         parameters = game_config["command_parameters"]
         module_name = game_config["module_name"]
